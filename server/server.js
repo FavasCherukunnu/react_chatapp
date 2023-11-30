@@ -1,31 +1,29 @@
-const express = require('express')
-const app = express()
-const cors = require('cors')
-const { createServer } = require('node:http');
+
+const http = require('http');
 const { Server } = require('socket.io');
+const app = require('./app');
+const dotenv = require('dotenv')
+const mongoose = require('mongoose');
+const { UserModel } = require('./models/user');
 
-const server = createServer(app);
-const io = new Server(server,{
-    cors:{
-        origin:'*'
+dotenv.config();
+mongoose.connect(process.env.MONGDBURL).then(
+    ()=>{
+        console.log('connected succesfully')
     }
-});
-const port = 3002
+).catch(
+    err=>console.log('error connecting database',err)
+);
 
-app.use(cors())
+const server = http.createServer(app)
+const port = process.env.PORT
+
+
 
 app.get('/', (req, res) => {
     res.send('Hello World!')
 })
 
-io.on('connection', (socket) => {
-    console.log('a user connected');
-    socket.on("sent message", (msg)=>{
-        socket.broadcast.emit(
-            "sent message",msg
-        )
-    })
-});
 
 
 server.listen(port, () => {
