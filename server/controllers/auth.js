@@ -1,7 +1,8 @@
 const { UserModel } = require("../models/user");
 var jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt')
-const crytpo = require('crypto')
+const crytpo = require('crypto');
+const { promisify } = require("util");
 
 const signToken = (userId)=>{
     return jwt.sign({userId},process.env.JWT_SECRET)
@@ -89,6 +90,35 @@ async function login(req,res,next){
 
 }
 
+async function protect(req,res,next){
+    let token;
+
+    if(req.headers.authorization && req.headers.authorization.startWith("Bearer")){
+        token = req.headers.authorization.split(" ")[1]
+    }else if(req.cookies.jwt){
+        token = req.cookies.jwt
+    }else{
+        res.status(400).json({
+            status:'error',
+            message:'Not logged in'
+        })
+    }
+
+    const decoded = await promisify(jwt.verify)(token,process.env.JWT_SECRET,);
+    const user = await UserModel.findById(decoded.userId);
+
+    if(!user){
+        return res.status(400).json({
+            status:'error',
+            message:'User does not exist'
+        })
+    }
+
+    req.userId = user._id;
+    next()
+
+}
 
 
-module.exports = {login}
+
+module.exports = {login,register}
